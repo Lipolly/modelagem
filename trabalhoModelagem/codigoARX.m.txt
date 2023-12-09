@@ -1,0 +1,55 @@
+close all; clear all; clc
+
+%% Definição do Sinal de Entrada : Excitação PRBS
+N=256;
+u=prbs(N,8,2)';
+Ts=0.1;
+t=[0:Ts:(N-1)*Ts];
+
+%% Definição do Modelo de Simulação 
+K=2;
+tau=1;
+%G=tf([K],[tau 1]);
+G=tf([1],[1 2 10]);
+y=lsim(G,u,t);
+
+%% Definição da Ordem do Modelo de identificação 
+ky=2;               % Número de atrasos na saída
+ku=2;               % Número de atrasos na entrada
+
+%% Identificação usando função IDENT
+data_ident = iddata(y,u,Ts);
+Gident = arx(data_ident,[ky ku 1])
+[y_i fit_i x0_i]=compare(data_ident,Gident);
+
+%% Montagem do Problema de Mínimios Quadrados
+ki=max(ky,ku);
+
+% Montagem do Vetor Y
+Y_mq=y(1+ki:N);
+
+% Montagem da Matriz de Regressores Phi
+for i=1:ky
+    Y_Phi(:,i)=y(ki-i+1:N-i);
+end
+for i=1:ku
+    U_Phi(:,i)=u(ki-i+1:N-i);
+end
+Phi=[Y_Phi U_Phi];
+
+% Calculo dos parametros do modelo através da Pseudo-Inversa
+%theta=inv(Phi'*Phi)*Phi'*Y_mq;
+theta=Phi\Y_mq
+
+%% Simulação Modelo para uma entrada em degrau 
+u_simulacao=ones(1,N);
+y_modelo(1:ky)=zeros(1,ky);
+reg_y=y_modelo';
+reg_u=[u_simulacao(1) zeros(1,ku-1)]';
+reg=[reg_y;reg_u];
+for i=1:(N-1)
+    y_modelo(i+1)=theta'*reg;
+    reg_y=[y_modelo(i+1);reg_y(1:ky-1)];
+    reg_u=[u_simulacao(i+1);reg_u(1:ku-1)];
+    reg=[reg_y;reg_u];
+end

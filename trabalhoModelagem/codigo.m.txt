@@ -1,0 +1,52 @@
+clear all;
+clc;
+
+%%
+%%Função de Transferencia 
+M = 1;
+m=1;
+b = 1;
+I = 1;
+g = 9.8;
+l = 1;
+q = (M+m)*(I+m*l^2)-(m*l)^2;
+s = tf( 's' );
+
+P_cart = (((I+m*l^2)/q)*s^2 - (m*g*l/q))/(s^4 + (b*(I + m*l^2)) *s^3/q - ((M + m)*m*g*l)*s^2/q - b*m*g*l*s/q);
+
+P_pend = (m*l*s/q)/(s^3 + (b*(I + m*l^2))*s^2/q - ((M + m)*m*g*l) *s/q - b*m*g*l/q);
+
+p = I*(M+m)+M*m*l^2; 
+
+A = [0 1 0 0;
+     0 -(I+m*l^2)*b/p (m^2*g*l^2)/p 0;
+     0 0 0 1;
+     0 -(m*l*b)/p m*g*l*(M+m)/p 0];
+B = [0;
+     (I+m*l^2)/p;
+          0;
+        m*l*l/p];
+C = [1 0 0 0;
+     0 0 1 0];
+D = [0;
+     0];
+
+estados = { 'x'  'u'  'y'  'f' };
+entradas = { 'você' };
+saidas = { 'x' ; 'fi' };
+
+[n, d] = ss2tf(A,B,C(1,:),0)
+
+sys_tf = tf(n, d)
+G = zpk(sys_tf)
+
+%Plotar lugar de raizes 
+rlocus(G)
+
+%PLotar Ressposta ao degrau unitario para diferentes valores de k
+% K= [0.5 1 15];
+% figure
+% step(feedback(K(1)*G,1),20);hold on
+% step(feedback(K(2)*G,1),20);hold on
+% step(feedback(K(3)*G,1),20);hold on
+% ylim([0 2]);legend('K=0.5','K=1','K=15')
